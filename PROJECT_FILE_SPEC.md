@@ -3,11 +3,7 @@ Project File Specification
 
 The project description file `project.json` is a simple human-readable [JSON]() file. An example can be found in our [Getting Started](https://github.com/light-tech/DevMaxGettingStarted) repository.
 
-Throughout this document, we assume `$ProjectDir` refers to where the project is located i.e. the folder containing the `project.json` file; for example `<...>/C++Projects/ExampleProject`. Then we have
- * the system include root is `$SysIncludeDir := $ProjectDir../../C++Include`; and
- * the system lib root is `$SysLibDir := $ProjectDir../../C++Lib`.
-
-__Tip:__ You can access `$SysIncludeDir` by typing `%localappdata%\Publishers\8vrbkgtyqrt4j\C++Include` in File Explorer. Similarly, pasting `%localappdata%\Publishers\8vrbkgtyqrt4j\C++Lib` will bring you to `$SysLibDir`.
+Throughout this document, we assume `$ProjectDir` refers to where the project is located i.e. the folder containing the `project.json` file; for example `C:/C++ Projects/ExampleProject`.
 
 Project
 -------
@@ -35,7 +31,9 @@ BUILD_COMMAND {
 	"sys_lib_dir"     : ARRAY OF STRING
 }
 ```
-The interpretation of the other members are determined by the `action` key. In any case, the fields `sys_include_dir`, `include_dir` and `sys_lib_dir` are __RELATIVE__ paths to be expanded to absolute path by DevMax i.e. prepended with `$SysIncludeDir` and `$SysLibDir` respectively. The paths in `include_dir` are, on the other hand, interpreted relative to `$ProjectDir`.
+The interpretation of the other members are determined by the `action` key.
+In any case, the fields `sys_include_dir` and `sys_lib_dir` are __ABSOLUTE__ paths.
+The paths specified in `include_dir` are, on the other hand, interpreted __RELATIVE__ to `$ProjectDir`.
 
 Needless to say, `sys_lib_dir` is only considered when the action is `link` whereas the `*include_dir` are only considered for the other two actions.
 
@@ -55,14 +53,16 @@ BUILD_STEP {
 	"command"  : STRING,
 	"inputs"   : ARRAY OF STRING,
 	"output"   : STRING,
-	"log_file" : STRING (C++ Compiler >= 2.6.1)
+	"log_file" : STRING
 }
 ```
-The `command` field denote the name of a `BUILD_COMMAND` defined in parent `PROJECT` object. When executing a `BUILD_DEFINITION`, DevMax further adds the `inputs` and `output` to the command after prepending these relative paths with the path to the project. Strings specified in `inputs` and `output` are paths relative to `$ProjectDir`.
+The `command` field denote the name of a `BUILD_COMMAND` defined in parent `PROJECT` object.
+When executing a `BUILD_DEFINITION`, DevMax further adds the `inputs` and `output` to the command after prepending these relative paths with the path to the project.
+Strings specified in `inputs` and `output` are paths relative to `$ProjectDir`.
 
 `BUILD_STEP` extends `BUILD_COMMAND` so if you don't specify `command`, you can put the whole definition of the object (i.e. `action`, `args`, etc.) in `BUILD_STEP` and an anonymous command will be created.
 
-In version >= 2.6.1 of C++ Compiler, we added a new field `log_file` for the compilation log.
+The field `log_file` is for the compilation log and it is not yet restored in DevMax 2.7.0.0 which switches to embedded Win32 C++ compiler (instead of the sister app).
 
 Example
 -------
@@ -77,14 +77,14 @@ Let us take a simple example. We also illustrate using uninterpreted field to wr
 	"CompileC++" : {
 		"action":"compile",
 		"args":["-fms-extensions", "-fms-compatibility", "-x", "c++", "-std=c++14", "-w"],
-		"sys_include_dir":["ucrt", "msvc"],
+		"sys_include_dir":["C:/include/ucrt", "C:/include/msvc"],
 		"include_dir":[""],
 		"comment":"The empty string in include_dir has the effect of adding the project folder to non-system header search path. For the record, any field not-interpreted by DevMax can be used to add comment like this."
 	},
 	"MakeExe" : {
 		"action":"link",
 		"args":["/defaultlib:msvcrt.lib", "/subsystem:Console"],
-		"sys_lib_dir":["msvc", "winsdk"]
+		"sys_lib_dir":["C:/lib/msvc", "C:/lib/winsdk"]
 	},
 },
 "build_definitions": [
@@ -108,7 +108,7 @@ Let us take a simple example. We also illustrate using uninterpreted field to wr
 			{
 				"action":"compile",
 				"args":["-fms-extensions", "-fms-compatibility", "-x", "c++", "-std=c++14", "-w"],
-				"sys_include_dir":["ucrt", "msvc"],
+				"sys_include_dir":["C:/include/ucrt", "C:/include/msvc"],
 				"include_dir":[""],
 				"inputs":["src/Source.cpp"]
 			}
@@ -120,7 +120,7 @@ Let us take a simple example. We also illustrate using uninterpreted field to wr
 
 Running the build definition `"Build program"` in DevMax UI has the effect similar to that of running two fairly long commands:
 ```Bash
-clang -isystem $SysIncludeDir/ucrt -isystem $SysIncludeDir/msvc -I $ProjectDir -fms-extensions -fms-compatibility -x c++ -std=c++14 -w -c $ProjectDir/src/Source.cpp -o $ProjectDir/src/Source.o
-link /libpath:$SysLibDir/msvc /libpath:$SysLibDir/winsdk /defaultlib:msvcrt.lib /subsystem:Console $ProjectDir/src/Source.o /out:$ProjectDir/Source.exe
+clang -isystem C:/include/ucrt -isystem C:/include/msvc -I $ProjectDir -fms-extensions -fms-compatibility -x c++ -std=c++14 -w -c $ProjectDir/src/Source.cpp -o $ProjectDir/src/Source.o
+link /libpath:C:/lib/msvc /libpath:C:/lib/winsdk /defaultlib:msvcrt.lib /subsystem:Console $ProjectDir/src/Source.o /out:$ProjectDir/Source.exe
 ```
 It is safer than writing these commands if you need to quote arguments correctly.
